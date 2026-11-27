@@ -1,0 +1,135 @@
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Мобильное меню
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileLinks = document.querySelectorAll('.mobile-link');
+
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            mobileLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+            // 2. Фильтрация прайс-листа
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const serviceRows = document.querySelectorAll('.service-row');
+
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Обновляем активную кнопку
+                    filterBtns.forEach(b => {
+                        b.classList.remove('bg-brand-dark', 'text-white');
+                        b.classList.add('bg-white', 'text-gray-700');
+                    });
+                    btn.classList.remove('bg-white', 'text-gray-700');
+                    btn.classList.add('bg-brand-dark', 'text-white');
+
+                    const filter = btn.getAttribute('data-filter');
+                    serviceRows.forEach(row => {
+                        if (filter === 'all' || row.getAttribute('data-category') === filter) {
+                            row.classList.remove('hidden');
+                        } else {
+                            row.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            // 3. Интерактивный калькулятор стоимости
+            const checkboxes = document.querySelectorAll('.service-checkbox');
+            const selectedListEl = document.getElementById('selected-list');
+            const totalPriceEl = document.getElementById('total-price');
+            const clearCalcBtn = document.getElementById('clear-calc-btn');
+            const transferBtn = document.getElementById('transfer-to-booking');
+            const problemDescInput = document.getElementById('problem-desc');
+
+            let selectedServices = [];
+            let currentTotal = 0;
+
+            function updateCalculator() {
+                selectedServices = [];
+                currentTotal = 0;
+
+                checkboxes.forEach(cb => {
+                    if (cb.checked) {
+                        const name = cb.getAttribute('data-name');
+                        const price = parseInt(cb.getAttribute('data-price'), 10);
+                        selectedServices.push({ name, price });
+                        currentTotal += price;
+                    }
+                });
+
+                if (selectedServices.length === 0) {
+                    selectedListEl.innerHTML = '<p class="text-gray-500 italic">Выберите услуги в списке слева, чтобы рассчитать итоговую сумму...</p>';
+                    clearCalcBtn.classList.add('hidden');
+                } else {
+                    clearCalcBtn.classList.remove('hidden');
+                    selectedListEl.innerHTML = selectedServices.map(item => `
+                        <div class="flex justify-between items-start gap-2">
+                            <span class="text-gray-200">${item.name}</span>
+                            <span class="font-semibold text-white whitespace-nowrap">${item.price.toLocaleString('ru-RU')} ₽</span>
+                        </div>
+                    `).join('');
+                }
+
+                totalPriceEl.textContent = `${currentTotal.toLocaleString('ru-RU')} ₽`;
+            }
+
+            checkboxes.forEach(cb => cb.addEventListener('change', updateCalculator));
+
+            clearCalcBtn.addEventListener('click', () => {
+                checkboxes.forEach(cb => cb.checked = false);
+                updateCalculator();
+            });
+
+            // Перенос выбранных услуг из калькулятора в форму записи
+            transferBtn.addEventListener('click', () => {
+                if (selectedServices.length > 0) {
+                    const summaryText = selectedServices.map(s => `• ${s.name} (${s.price} ₽)`).join('\n');
+                    problemDescInput.value = `Выбранные услуги из калькулятора:\n${summaryText}\nИтого ориентировочно: ${currentTotal} ₽`;
+                }
+                document.getElementById('booking').scrollIntoView({ behavior: 'smooth' });
+            });
+
+            // 4. Установка сегодняшней даты по умолчанию в форме записи
+            const visitDateInput = document.getElementById('visit-date');
+            if (visitDateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                visitDateInput.min = today;
+                visitDateInput.value = today;
+            }
+
+            // 5. Обработка формы записи и модальное окно
+            const bookingForm = document.getElementById('booking-form');
+            const successModal = document.getElementById('success-modal');
+            const modalSummary = document.getElementById('modal-summary');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+
+            bookingForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('client-name').value.trim();
+                const phone = document.getElementById('client-phone').value.trim();
+                const bike = document.getElementById('bike-type').value;
+
+                modalSummary.textContent = `${name}, ваша заявка на обслуживание велосипеда (${bike}) принята. Мастер свяжется с вами по контакту ${phone} в течение 15 минут.`;
+                successModal.classList.remove('hidden');
+                successModal.classList.add('flex');
+                bookingForm.reset();
+            });
+
+            closeModalBtn.addEventListener('click', () => {
+                successModal.classList.add('hidden');
+                successModal.classList.remove('flex');
+            });
+
+            successModal.addEventListener('click', (e) => {
+                if (e.target === successModal) {
+                    successModal.classList.add('hidden');
+                    successModal.classList.remove('flex');
+                }
+            });
+        });
